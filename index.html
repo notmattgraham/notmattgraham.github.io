@@ -461,8 +461,14 @@
 
     .newsletter-form {
       display: flex;
-      align-items: stretch;
+      flex-direction: column;
+      gap: 8px;
       max-width: 520px;
+    }
+
+    .newsletter-row {
+      display: flex;
+      align-items: stretch;
       border-bottom: 1px solid var(--ink);
       transition: border-color 0.2s ease;
     }
@@ -676,22 +682,36 @@
     </p>
 
     <form class="newsletter-form" id="newsletterForm" novalidate>
-      <input
-        type="email"
-        id="newsletter-email"
-        name="email"
-        placeholder="your@email.com"
-        autocomplete="email"
-        aria-label="Email address"
-        required
-      />
-      <button type="submit" class="newsletter-submit">
-        <span>Subscribe</span>
-        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
-          <line x1="5" y1="12" x2="19" y2="12"/>
-          <polyline points="12 5 19 12 12 19"/>
-        </svg>
-      </button>
+      <div class="newsletter-row">
+        <input
+          type="text"
+          id="newsletter-name"
+          name="first_name"
+          placeholder="First name"
+          autocomplete="given-name"
+          aria-label="First name"
+          required
+        />
+      </div>
+
+      <div class="newsletter-row">
+        <input
+          type="email"
+          id="newsletter-email"
+          name="email"
+          placeholder="your@email.com"
+          autocomplete="email"
+          aria-label="Email address"
+          required
+        />
+        <button type="submit" class="newsletter-submit">
+          <span>Subscribe</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+      </div>
     </form>
 
     <p class="newsletter-status" id="newsletterStatus" aria-live="polite"></p>
@@ -712,15 +732,13 @@
 
 <script>
   // ── Newsletter signup (Klaviyo) ──
-  // To activate: replace LIST_ID below with your Klaviyo newsletter list ID.
-  // Find it in Klaviyo: Lists & Segments → click your list → it's in the URL.
   (function () {
     var form = document.getElementById('newsletterForm');
     var statusEl = document.getElementById('newsletterStatus');
     if (!form || !statusEl) return;
 
     var COMPANY_ID = 'Xu3fyr';
-    var LIST_ID = 'YOUR_LIST_ID'; // <-- replace this once you create the list
+    var LIST_ID = 'Yfuf9W';
 
     var submitBtn = form.querySelector('button[type="submit"]');
     var submitDefaultHTML = submitBtn.innerHTML;
@@ -730,9 +748,15 @@
       statusEl.className = 'newsletter-status' + (type ? ' is-' + type : '');
     }
 
-    form.addEventListener('submit', function (e) {
+    form.addEventListener('submit', async function (e) {
       e.preventDefault();
+      var firstName = document.getElementById('newsletter-name').value.trim();
       var email = document.getElementById('newsletter-email').value.trim();
+
+      if (!firstName) {
+        setStatus("What should I call you?", 'error');
+        return;
+      }
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         setStatus("That email doesn't look right.", 'error');
         return;
@@ -742,41 +766,55 @@
       submitBtn.innerHTML = '<span>Subscribing&hellip;</span>';
       setStatus('', '');
 
-      fetch('https://a.klaviyo.com/client/subscriptions/?company_id=' + COMPANY_ID, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'revision': '2024-10-15'
-        },
-        body: JSON.stringify({
-          data: {
-            type: 'subscription',
-            attributes: {
-              profile: {
-                data: {
-                  type: 'profile',
-                  attributes: { email: email }
+      try {
+        var res = await fetch('https://a.klaviyo.com/client/subscriptions/?company_id=' + COMPANY_ID, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'revision': '2025-04-15'
+          },
+          body: JSON.stringify({
+            data: {
+              type: 'subscription',
+              attributes: {
+                custom_source: 'notmattgraham.com newsletter',
+                profile: {
+                  data: {
+                    type: 'profile',
+                    attributes: {
+                      email: email,
+                      first_name: firstName,
+                      subscriptions: {
+                        email: {
+                          marketing: { consent: 'SUBSCRIBED' }
+                        }
+                      }
+                    }
+                  }
                 }
+              },
+              relationships: {
+                list: { data: { type: 'list', id: LIST_ID } }
               }
-            },
-            relationships: {
-              list: { data: { type: 'list', id: LIST_ID } }
             }
-          }
-        })
-      }).then(function (res) {
+          })
+        });
+
         if (res.ok || res.status === 202) {
           form.reset();
-          setStatus("You're in. I'll be in touch.", 'success');
+          setStatus("You're in, " + firstName + ". I'll be in touch.", 'success');
         } else {
-          throw new Error('Subscription failed: ' + res.status);
+          var errText = await res.text();
+          console.error('Klaviyo subscription error:', res.status, errText);
+          setStatus("Something went wrong. Try again in a sec.", 'error');
         }
-      }).catch(function () {
+      } catch (err) {
+        console.error('Newsletter signup error:', err);
         setStatus("Something went wrong. Try again in a sec.", 'error');
-      }).then(function () {
+      } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = submitDefaultHTML;
-      });
+      }
     });
   })();
 
