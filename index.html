@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matt Graham — Building in public</title>
+  <meta name="description" content="Operator. Builder. Currently shipping The Skinny Fat Fix.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0908;
+      --fg: #eeeae3;
+      --muted: #6b665e;
+      --line: #1f1d1a;
+      --hover: #ffffff;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      opacity: 0.05;
+      pointer-events: none;
+      z-index: 1;
+      mix-blend-mode: overlay;
+    }
+
+    /* Subtle radial glow behind hero */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60vw;
+      height: 60vw;
+      max-width: 800px;
+      max-height: 800px;
+      background: radial-gradient(circle, rgba(238, 234, 227, 0.025) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0;
+      animation: fadeIn 0.8s ease 0.1s forwards;
+    }
+
+    .logo-mark {
+      width: 110px;
+      display: block;
+    }
+
+    .logo-mark svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .meta {
+      text-align: right;
+      line-height: 1.7;
+    }
+
+    .meta .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: #c2a878;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+
+    /* Hero */
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 100px 0 80px;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.3s forwards;
+    }
+
+    .eyebrow::before {
+      content: '';
+      width: 32px;
+      height: 1px;
+      background: var(--muted);
+      display: inline-block;
+    }
+
+    h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(56px, 11vw, 144px);
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      margin-bottom: 40px;
+      font-weight: 400;
+      opacity: 0;
+      animation: fadeUp 1s ease 0.4s forwards;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--muted);
+    }
+
+    .tagline {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(22px, 2.6vw, 30px);
+      line-height: 1.45;
+      max-width: 620px;
+      font-weight: 400;
+      opacity: 0;
+      animation: fadeUp 1s ease 0.6s forwards;
+    }
+
+    .tagline em {
+      font-style: italic;
+      color: var(--muted);
+    }
+
+    /* Content grid */
+    .sections {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 64px;
+      padding-top: 64px;
+      border-top: 1px solid var(--line);
+      opacity: 0;
+      animation: fadeUp 1s ease 0.9s forwards;
+    }
+
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .links {
+      list-style: none;
+    }
+
+    .links li {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 0;
+      color: var(--fg);
+      text-decoration: none;
+      font-family: 'Instrument Serif', serif;
+      font-size: 22px;
+      font-weight: 400;
+      transition: padding-left 0.4s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s ease;
+    }
+
+    .link:hover {
+      padding-left: 12px;
+      color: var(--hover);
+    }
+
+    .link-row {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+
+    .link-row .badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transform: translateY(-2px);
+    }
+
+    .arrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--muted);
+      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s ease;
+    }
+
+    .link:hover .arrow {
+      transform: translateX(6px);
+      color: var(--fg);
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 96px;
+      padding-top: 28px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0;
+      animation: fadeIn 1.2s ease 1.1s forwards;
+    }
+
+    footer a {
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    footer a:hover { color: var(--fg); }
+
+    /* Animations */
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Responsive */
+    @media (max-width: 720px) {
+      .container { padding: 24px; }
+      .logo-mark { width: 88px; }
+      .hero { padding: 60px 0 48px; }
+      .eyebrow { margin-bottom: 28px; }
+      h1 { margin-bottom: 28px; }
+      .sections {
+        grid-template-columns: 1fr;
+        gap: 48px;
+        padding-top: 48px;
+      }
+      footer {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+        margin-top: 64px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header .meta { font-size: 10px; }
+    }
+
+    /* Selection */
+    ::selection {
+      background: var(--fg);
+      color: var(--bg);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <a href="/" class="logo-mark" aria-label="Matt Graham">
+        <svg viewBox="0 0 757.6 254.59" xmlns="http://www.w3.org/2000/svg">
+          <polygon fill="#eeeae3" points="0 253.93 134.02 253.93 204.56 84.64 70.54 84.64 0 253.93"/>
+          <polygon fill="#eeeae3" points="171.62 253.93 305.64 253.93 376.18 84.64 242.16 84.64 171.62 253.93"/>
+          <polygon fill="#eeeae3" points="345.8 254.59 479.82 254.59 550.36 85.3 416.34 85.3 345.8 254.59"/>
+          <polygon fill="#eeeae3" points="553.04 169.29 687.06 169.29 757.6 0 623.58 0 553.04 169.29"/>
+        </svg>
+      </a>
+      <div class="meta">
+        <span class="dot"></span>Site in progress<br>
+        v0.1 &middot; May 2026
+      </div>
+    </header>
+
+    <main class="hero">
+      <div class="eyebrow">notmattgraham</div>
+      <h1>Building <em>in&nbsp;public.</em></h1>
+      <p class="tagline">
+        Operator. Builder. Currently shipping things for people who'd rather build than scroll. <em>New site coming. The links work.</em>
+      </p>
+    </main>
+
+    <section class="sections">
+      <div>
+        <div class="section-label">Currently shipping</div>
+        <ul class="links">
+          <li>
+            <a class="link" href="/skinnyfatfix">
+              <span class="link-row">
+                The Skinny Fat Fix
+                <span class="badge">Live</span>
+              </span>
+              <span class="arrow">&rarr;</span>
+            </a>
+          </li>
+          <li>
+            <a class="link" href="/quiz">
+              <span class="link-row">
+                Bulk or Cut Quiz
+                <span class="badge">Free</span>
+              </span>
+              <span class="arrow">&rarr;</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="section-label">Elsewhere</div>
+        <ul class="links">
+          <li>
+            <a class="link" href="https://instagram.com/notmattgraham" target="_blank" rel="noopener">
+              <span>Instagram</span>
+              <span class="arrow">&#8599;</span>
+            </a>
+          </li>
+          <li>
+            <a class="link" href="https://tiktok.com/@notmattgraham" target="_blank" rel="noopener">
+              <span>TikTok</span>
+              <span class="arrow">&#8599;</span>
+            </a>
+          </li>
+          <li>
+            <a class="link" href="https://x.com/notmattgraham" target="_blank" rel="noopener">
+              <span>X</span>
+              <span class="arrow">&#8599;</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <footer>
+      <span>&copy; 2026 Matt Graham</span>
+      <span>Auburndale, FL &middot; <a href="mailto:hello@notmattgraham.com">hello@notmattgraham.com</a></span>
+    </footer>
+
+  </div>
+</body>
+</html>
