@@ -440,6 +440,82 @@
       .footer-signature { width: 180px; }
     }
 
+    /* ── NEWSLETTER ── */
+    .newsletter-heading {
+      font-family: var(--display);
+      font-size: clamp(36px, 4.8vw, 64px);
+      font-weight: 700;
+      letter-spacing: -0.035em;
+      line-height: 1;
+      color: var(--ink);
+      margin-bottom: 18px;
+    }
+
+    .newsletter-lead {
+      font-size: clamp(16px, 1.3vw, 18px);
+      line-height: 1.6;
+      color: var(--ink-soft);
+      max-width: 540px;
+      margin-bottom: 36px;
+    }
+
+    .newsletter-form {
+      display: flex;
+      align-items: stretch;
+      max-width: 520px;
+      border-bottom: 1px solid var(--ink);
+      transition: border-color 0.2s ease;
+    }
+
+    .newsletter-form input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 14px 0;
+      font-family: var(--body);
+      font-size: 16px;
+      color: var(--ink);
+      min-width: 0;
+    }
+
+    .newsletter-form input::placeholder { color: var(--ink-faint); }
+
+    .newsletter-submit {
+      background: transparent;
+      border: none;
+      padding: 14px 0;
+      font-family: var(--body);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.005em;
+      transition: opacity 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .newsletter-submit:hover { opacity: 0.6; }
+    .newsletter-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .newsletter-submit .arrow {
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .newsletter-submit:hover .arrow { transform: translateX(4px); }
+
+    .newsletter-status {
+      font-size: 14px;
+      color: var(--ink-soft);
+      margin-top: 18px;
+      max-width: 520px;
+      min-height: 21px;
+    }
+    .newsletter-status.is-success { color: var(--ink); font-weight: 500; }
+    .newsletter-status.is-error { color: #b3503e; }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 880px) {
       .hero {
@@ -591,6 +667,36 @@
     </div>
   </section>
 
+  <!-- ── NEWSLETTER ── -->
+  <section class="reveal" id="newsletter">
+    <div class="section-label">Newsletter</div>
+    <h2 class="newsletter-heading">Get my notes.</h2>
+    <p class="newsletter-lead">
+      What I'm building, what's working, and what's on my mind. Sent only when I have something worth saying.
+    </p>
+
+    <form class="newsletter-form" id="newsletterForm" novalidate>
+      <input
+        type="email"
+        id="newsletter-email"
+        name="email"
+        placeholder="your@email.com"
+        autocomplete="email"
+        aria-label="Email address"
+        required
+      />
+      <button type="submit" class="newsletter-submit">
+        <span>Subscribe</span>
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
+    </form>
+
+    <p class="newsletter-status" id="newsletterStatus" aria-live="polite"></p>
+  </section>
+
   <!-- ── FOOTER ── -->
   <footer>
     <div class="footer-meta">
@@ -605,6 +711,75 @@
 </div>
 
 <script>
+  // ── Newsletter signup (Klaviyo) ──
+  // To activate: replace LIST_ID below with your Klaviyo newsletter list ID.
+  // Find it in Klaviyo: Lists & Segments → click your list → it's in the URL.
+  (function () {
+    var form = document.getElementById('newsletterForm');
+    var statusEl = document.getElementById('newsletterStatus');
+    if (!form || !statusEl) return;
+
+    var COMPANY_ID = 'Xu3fyr';
+    var LIST_ID = 'YOUR_LIST_ID'; // <-- replace this once you create the list
+
+    var submitBtn = form.querySelector('button[type="submit"]');
+    var submitDefaultHTML = submitBtn.innerHTML;
+
+    function setStatus(message, type) {
+      statusEl.textContent = message;
+      statusEl.className = 'newsletter-status' + (type ? ' is-' + type : '');
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = document.getElementById('newsletter-email').value.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setStatus("That email doesn't look right.", 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span>Subscribing&hellip;</span>';
+      setStatus('', '');
+
+      fetch('https://a.klaviyo.com/client/subscriptions/?company_id=' + COMPANY_ID, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'revision': '2024-10-15'
+        },
+        body: JSON.stringify({
+          data: {
+            type: 'subscription',
+            attributes: {
+              profile: {
+                data: {
+                  type: 'profile',
+                  attributes: { email: email }
+                }
+              }
+            },
+            relationships: {
+              list: { data: { type: 'list', id: LIST_ID } }
+            }
+          }
+        })
+      }).then(function (res) {
+        if (res.ok || res.status === 202) {
+          form.reset();
+          setStatus("You're in. I'll be in touch.", 'success');
+        } else {
+          throw new Error('Subscription failed: ' + res.status);
+        }
+      }).catch(function () {
+        setStatus("Something went wrong. Try again in a sec.", 'error');
+      }).then(function () {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = submitDefaultHTML;
+      });
+    });
+  })();
+
   // Scroll reveals
   if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     var observer = new IntersectionObserver(function (entries) {
